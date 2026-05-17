@@ -4072,9 +4072,22 @@
   async function startTracker(roomId) {
     document.getElementById("room-entry").style.display = "none";
     document.getElementById("tracker-ui").style.display = "contents";
+    document.getElementById("btn-disconnect").style.display = "block";
     const video = document.getElementById("video");
     const canvas = document.getElementById("canvas");
     const ctx = canvas.getContext("2d");
+    let stopped = false;
+    document.getElementById("btn-disconnect").onclick = () => {
+      stopped = true;
+      ws2?.close();
+      stream.getTracks().forEach((t2) => t2.stop());
+      video.srcObject = null;
+      document.getElementById("tracker-ui").style.display = "none";
+      document.getElementById("room-entry").style.display = "flex";
+      document.getElementById("btn-disconnect").style.display = "none";
+      document.getElementById("room-input").value = "";
+      updateStatus("\u2014", "red");
+    };
     const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } });
     video.srcObject = stream;
     await video.play();
@@ -4091,6 +4104,7 @@
     connectWs(roomId);
     let lastVideoTime = -1;
     function detect() {
+      if (stopped) return;
       if (video.readyState >= 2 && video.currentTime !== lastVideoTime) {
         lastVideoTime = video.currentTime;
         const results = handLandmarker.detectForVideo(video, Date.now());

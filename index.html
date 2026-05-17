@@ -173,15 +173,31 @@
     }
 
     video { display: none; }
+
+    #btn-disconnect {
+      display: none;
+      background: #2a1a1a;
+      color: #e05555;
+      border: 1px solid #3a2020;
+      border-radius: 20px;
+      padding: 5px 12px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    #btn-disconnect:hover { background: #3a1a1a; }
   </style>
 </head>
 <body>
 
   <div class="topbar">
     <div class="brand">Hand Tracker</div>
-    <div class="status-chip">
-      <div class="dot" id="dot"></div>
-      <span id="status">—</span>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <div class="status-chip">
+        <div class="dot" id="dot"></div>
+        <span id="status">—</span>
+      </div>
+      <button id="btn-disconnect">Disconnect</button>
     </div>
   </div>
 
