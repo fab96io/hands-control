@@ -4024,11 +4024,24 @@
     const pips = [6, 10, 14, 18];
     return lm[tips[finger]].y < lm[pips[finger]].y;
   }
+  var wsManualClose = false;
   function connectWs(roomId) {
+    wsManualClose = false;
     const WS_URL = `wss://${RELAY_HOST}/ws?room=${roomId}`;
     ws2 = new WebSocket(WS_URL);
     ws2.onopen = () => updateStatus(`Connected (room: ${roomId})`, "green");
+    ws2.onmessage = (e2) => {
+      try {
+        const msg = JSON.parse(e2.data);
+        if (msg.type === "room_closed") {
+          wsManualClose = true;
+          document.getElementById("btn-disconnect").click();
+        }
+      } catch {
+      }
+    };
     ws2.onclose = () => {
+      if (wsManualClose) return;
       updateStatus("Disconnected \u2014 retrying\u2026", "red");
       setTimeout(() => connectWs(roomId), 2e3);
     };

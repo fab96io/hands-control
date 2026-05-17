@@ -48,11 +48,24 @@ function isExtended(lm: Array<{ x: number; y: number; z: number }>, finger: numb
   return lm[tips[finger]].y < lm[pips[finger]].y;
 }
 
+let wsManualClose = false;
+
 function connectWs(roomId: string) {
+  wsManualClose = false;
   const WS_URL = `wss://${RELAY_HOST}/ws?room=${roomId}`;
   ws = new WebSocket(WS_URL);
   ws.onopen = () => updateStatus(`Connected (room: ${roomId})`, 'green');
+  ws.onmessage = (e) => {
+    try {
+      const msg = JSON.parse(e.data);
+      if (msg.type === 'room_closed') {
+        wsManualClose = true;
+        document.getElementById('btn-disconnect')!.click();
+      }
+    } catch {}
+  };
   ws.onclose = () => {
+    if (wsManualClose) return;
     updateStatus('Disconnected — retrying…', 'red');
     setTimeout(() => connectWs(roomId), 2000);
   };
