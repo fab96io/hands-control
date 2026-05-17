@@ -62,6 +62,68 @@
     }
     .dot.connected { background: #4ade80; }
 
+    /* ── Room entry ── */
+    #room-entry {
+      width: 100%;
+      max-width: 400px;
+      margin-top: 60px;
+      flex-direction: column;
+      align-items: center;
+      gap: 24px;
+      display: none;
+    }
+
+    .room-entry-title {
+      font-size: 22px;
+      font-weight: 700;
+      color: #fff;
+      text-align: center;
+    }
+
+    .room-entry-desc {
+      font-size: 13px;
+      color: #888;
+      text-align: center;
+      line-height: 1.6;
+    }
+
+    #room-form {
+      display: flex;
+      gap: 8px;
+      width: 100%;
+    }
+
+    #room-input {
+      flex: 1;
+      background: #242424;
+      border: 1px solid #3a3a3a;
+      border-radius: 8px;
+      padding: 10px 14px;
+      color: #fff;
+      font-size: 16px;
+      font-family: monospace;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    #room-input:focus { border-color: #4ade80; }
+    #room-input::placeholder { color: #555; text-transform: none; letter-spacing: 0; }
+
+    #room-submit {
+      background: #4ade80;
+      color: #111;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 18px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    #room-submit:hover { background: #22c55e; }
+
     /* ── Gesture badge ── */
     .gesture-card {
       width: 100%;
@@ -86,9 +148,7 @@
       overflow: visible;
     }
 
-    .gesture-icon svg {
-      overflow: visible;
-    }
+    .gesture-icon svg { overflow: visible; }
 
     #gesture {
       font-size: 16px;
@@ -121,17 +181,34 @@
     <div class="brand">Hand Tracker</div>
     <div class="status-chip">
       <div class="dot" id="dot"></div>
-      <span id="status">Starting…</span>
+      <span id="status">—</span>
     </div>
   </div>
 
-  <div class="gesture-card">
-    <div class="gesture-icon" id="gesture-icon"></div>
-    <div id="gesture">—</div>
+  <!-- Room entry screen -->
+  <div id="room-entry">
+    <div>
+      <div class="room-entry-title">Enter your room code</div>
+    </div>
+    <div class="room-entry-desc">
+      Open the <strong style="color:#e0e0e0;">Hand Control</strong> plugin in Figma.<br>
+      Copy the room code shown there and paste it below.
+    </div>
+    <form id="room-form">
+      <input id="room-input" type="text" placeholder="e.g. A3K-9XB" maxlength="7" autocomplete="off" />
+      <button id="room-submit" type="submit">Connect</button>
+    </form>
   </div>
 
-  <div class="canvas-wrap">
-    <canvas id="canvas"></canvas>
+  <!-- Tracker UI (shown after connect) -->
+  <div id="tracker-ui" style="display:none; width:100%; max-width:640px; flex-direction:column; gap:14px;">
+    <div class="gesture-card">
+      <div class="gesture-icon" id="gesture-icon"></div>
+      <div id="gesture">—</div>
+    </div>
+    <div class="canvas-wrap">
+      <canvas id="canvas"></canvas>
+    </div>
   </div>
 
   <video id="video" playsinline></video>

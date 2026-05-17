@@ -4007,8 +4007,6 @@
 
   // src/tracker.ts
   var RELAY_HOST = "hand-relay.fly.dev";
-  var roomId = new URLSearchParams(window.location.search).get("room");
-  var WS_URL = roomId ? `wss://${RELAY_HOST}/ws?room=${roomId}` : null;
   var PINCH_THRESHOLD = 0.06;
   var THROTTLE_MS = 1e3 / 30;
   var MEDIAPIPE_WASM = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm";
@@ -4026,16 +4024,13 @@
     const pips = [6, 10, 14, 18];
     return lm[tips[finger]].y < lm[pips[finger]].y;
   }
-  function connectWs() {
-    if (!WS_URL) {
-      updateStatus("No room \u2014 open link from plugin", "red");
-      return;
-    }
+  function connectWs(roomId) {
+    const WS_URL = `wss://${RELAY_HOST}/ws?room=${roomId}`;
     ws2 = new WebSocket(WS_URL);
-    ws2.onopen = () => updateStatus(`WS: connected (room: ${roomId})`, "green");
+    ws2.onopen = () => updateStatus(`Connected (room: ${roomId})`, "green");
     ws2.onclose = () => {
-      updateStatus("WS: disconnected \u2014 retrying\u2026", "red");
-      setTimeout(connectWs, 2e3);
+      updateStatus("Disconnected \u2014 retrying\u2026", "red");
+      setTimeout(() => connectWs(roomId), 2e3);
     };
     ws2.onerror = () => ws2?.close();
   }
@@ -4043,7 +4038,7 @@
     const el = document.getElementById("status");
     if (el) {
       el.textContent = text;
-      el.style.color = color;
+      el.style.color = color === "green" ? "" : color;
     }
     const dot = document.getElementById("dot");
     if (dot) dot.className = "dot" + (color === "green" ? " connected" : "");
@@ -4074,7 +4069,9 @@
     const icon = document.getElementById("gesture-icon");
     if (icon) icon.innerHTML = GESTURE_ICONS[gestureKey(text)] ?? GESTURE_ICONS["idle"];
   }
-  async function main() {
+  async function startTracker(roomId) {
+    document.getElementById("room-entry").style.display = "none";
+    document.getElementById("tracker-ui").style.display = "contents";
     const video = document.getElementById("video");
     const canvas = document.getElementById("canvas");
     const ctx = canvas.getContext("2d");
@@ -4091,7 +4088,7 @@
       runningMode: "VIDEO"
     });
     updateStatus("MediaPipe ready", "blue");
-    connectWs();
+    connectWs(roomId);
     let lastVideoTime = -1;
     function detect() {
       if (video.readyState >= 2 && video.currentTime !== lastVideoTime) {
@@ -4166,8 +4163,23 @@
     }
     detect();
   }
-  main().catch((err) => {
-    console.error(err);
-    updateStatus(`Error: ${err.message}`, "red");
-  });
+  var urlRoom = new URLSearchParams(window.location.search).get("room");
+  if (urlRoom) {
+    startTracker(urlRoom).catch((err) => {
+      updateStatus(`Error: ${err.message}`, "red");
+    });
+  } else {
+    document.getElementById("room-entry").style.display = "flex";
+    document.getElementById("tracker-ui").style.display = "none";
+    const form = document.getElementById("room-form");
+    const input = document.getElementById("room-input");
+    form.addEventListener("submit", (e2) => {
+      e2.preventDefault();
+      const id = input.value.trim().toUpperCase();
+      if (!id) return;
+      startTracker(id).catch((err) => {
+        updateStatus(`Error: ${err.message}`, "red");
+      });
+    });
+  }
 })();

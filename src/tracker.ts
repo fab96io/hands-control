@@ -22,10 +22,6 @@ export type HandMessage = {
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const RELAY_HOST = 'hand-relay.fly.dev';
-const roomId = new URLSearchParams(window.location.search).get('room');
-const WS_URL = roomId
-  ? `wss://${RELAY_HOST}/ws?room=${roomId}`
-  : null;
 const PINCH_THRESHOLD = 0.06;
 const THROTTLE_MS = 1000 / 30;
 
@@ -36,9 +32,7 @@ const HAND_MODEL = 'https://storage.googleapis.com/mediapipe-models/hand_landmar
 let ws: WebSocket | null = null;
 let lastSendTs = 0;
 
-// EMA smoothing — palm mode (lower alpha = smoother, more lag)
 const POS_ALPHA = 0.25;
-// Point mode uses higher alpha for tighter cursor tracking
 const POINT_ALPHA = 0.45;
 let smoothPos = { x: 0.5, y: 0.5 };
 let smoothInitialized = false;
@@ -48,30 +42,26 @@ function dist(a: { x: number; y: number }, b: { x: number; y: number }): number 
   return Math.hypot(a.x - b.x, a.y - b.y);
 }
 
-// finger: 0=index, 1=middle, 2=ring, 3=pinky
 function isExtended(lm: Array<{ x: number; y: number; z: number }>, finger: number): boolean {
   const tips = [8, 12, 16, 20];
   const pips = [6, 10, 14, 18];
   return lm[tips[finger]].y < lm[pips[finger]].y;
 }
 
-function connectWs() {
-  if (!WS_URL) {
-    updateStatus('No room — open link from plugin', 'red');
-    return;
-  }
+function connectWs(roomId: string) {
+  const WS_URL = `wss://${RELAY_HOST}/ws?room=${roomId}`;
   ws = new WebSocket(WS_URL);
-  ws.onopen = () => updateStatus(`WS: connected (room: ${roomId})`, 'green');
+  ws.onopen = () => updateStatus(`Connected (room: ${roomId})`, 'green');
   ws.onclose = () => {
-    updateStatus('WS: disconnected — retrying…', 'red');
-    setTimeout(connectWs, 2000);
+    updateStatus('Disconnected — retrying…', 'red');
+    setTimeout(() => connectWs(roomId), 2000);
   };
   ws.onerror = () => ws?.close();
 }
 
 function updateStatus(text: string, color: string) {
   const el = document.getElementById('status');
-  if (el) { el.textContent = text; el.style.color = color; }
+  if (el) { el.textContent = text; el.style.color = color === 'green' ? '' : color; }
   const dot = document.getElementById('dot');
   if (dot) dot.className = 'dot' + (color === 'green' ? ' connected' : '');
 }
@@ -105,12 +95,14 @@ function updateGesture(text: string) {
   if (icon) icon.innerHTML = GESTURE_ICONS[gestureKey(text)] ?? GESTURE_ICONS['idle'];
 }
 
-async function main() {
+async function startTracker(roomId: string) {
+  document.getElementById('room-entry')!.style.display = 'none';
+  document.getElementById('tracker-ui')!.style.display = 'contents';
+
   const video = document.getElementById('video') as HTMLVideoElement;
   const canvas = document.getElementById('canvas') as HTMLCanvasElement;
   const ctx = canvas.getContext('2d')!;
 
-  // Camera
   const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } });
   video.srcObject = stream;
   await video.play();
@@ -127,7 +119,7 @@ async function main() {
   });
 
   updateStatus('MediaPipe ready', 'blue');
-  connectWs();
+  connectWs(roomId);
 
   let lastVideoTime = -1;
 
@@ -136,7 +128,6 @@ async function main() {
       lastVideoTime = video.currentTime;
       const results = handLandmarker.detectForVideo(video, Date.now());
 
-      // Draw mirror feed
       ctx.save();
       ctx.scale(-1, 1);
       ctx.drawImage(video, -canvas.width, 0);
@@ -153,7 +144,6 @@ async function main() {
 
         if (hands.length === 0) smoothInitialized = false;
 
-        // Gesture detection on primary hand (first detected)
         const primary = hands[0];
         let pinch = false;
         let position = { x: 0.5, y: 0.5 };
@@ -167,14 +157,12 @@ async function main() {
           const thumbTip = primary.landmarks[4];
           const indexTip = primary.landmarks[8];
 
-          // Palm center: average of wrist + 4 knuckle bases (more stable than wrist alone)
           const palmIdxs = [0, 5, 9, 13, 17];
           const palmX = palmIdxs.reduce((s, i) => s + primary.landmarks[i].x, 0) / palmIdxs.length;
           const palmY = palmIdxs.reduce((s, i) => s + primary.landmarks[i].y, 0) / palmIdxs.length;
 
           pinch = dist(thumbTip, indexTip) < PINCH_THRESHOLD;
 
-          // EMA smoothing
           if (!smoothInitialized) {
             smoothPos = { x: 1 - palmX, y: palmY };
             smoothInitialized = true;
@@ -209,7 +197,6 @@ async function main() {
             && isExtended(primary.landmarks, 2)
             && isExtended(primary.landmarks, 3);
 
-          // Overlay landmarks on canvas
           ctx.fillStyle = pinch ? 'red' : 'lime';
           for (const lm of primary.landmarks) {
             ctx.beginPath();
@@ -218,7 +205,6 @@ async function main() {
           }
         }
 
-        // Two-hand zoom + rotation: distance and angle between wrists
         let rotation: number | null = null;
         if (hands.length === 2) {
           const w0 = hands[0].landmarks[0];
@@ -254,7 +240,27 @@ async function main() {
   detect();
 }
 
-main().catch(err => {
-  console.error(err);
-  updateStatus(`Error: ${err.message}`, 'red');
-});
+// ── Entry point ───────────────────────────────────────────────────────────────
+const urlRoom = new URLSearchParams(window.location.search).get('room');
+
+if (urlRoom) {
+  startTracker(urlRoom).catch(err => {
+    updateStatus(`Error: ${err.message}`, 'red');
+  });
+} else {
+  // Show room entry form
+  document.getElementById('room-entry')!.style.display = 'flex';
+  document.getElementById('tracker-ui')!.style.display = 'none';
+
+  const form = document.getElementById('room-form') as HTMLFormElement;
+  const input = document.getElementById('room-input') as HTMLInputElement;
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const id = input.value.trim().toUpperCase();
+    if (!id) return;
+    startTracker(id).catch(err => {
+      updateStatus(`Error: ${err.message}`, 'red');
+    });
+  });
+}
