@@ -1,0 +1,17 @@
+{
+  "name": "hand-tracker",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "esbuild src/tracker.ts --bundle --platform=browser --format=iife --outfile=dist/tracker.js",
+    "dev": "esbuild src/tracker.ts --bundle --platform=browser --format=iife --outfile=dist/tracker.js --watch",
+    "serve": "npx serve . --listen 3000"
+  },
+  "dependencies": {
+    "@mediapipe/tasks-vision": "^0.10.14"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "esbuild": "^0.24.0",
+    "typescript": "^5.0.0"
+  }
+}

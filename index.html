@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Hand Tracker</title>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #1a1a1a;
+      color: #e0e0e0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
+      font-size: 13px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px 16px;
+      gap: 14px;
+    }
+
+    /* ── Top bar ── */
+    .topbar {
+      width: 100%;
+      max-width: 640px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 600;
+      font-size: 15px;
+      color: #fff;
+    }
+
+    .brand i { color: #4ade80; }
+
+    /* ── Status chip ── */
+    .status-chip {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: #242424;
+      border: 1px solid #2e2e2e;
+      border-radius: 20px;
+      padding: 5px 12px;
+      font-size: 12px;
+      color: #888;
+    }
+
+    .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #e05555;
+      transition: background 0.3s;
+    }
+    .dot.connected { background: #4ade80; }
+
+    /* ── Gesture badge ── */
+    .gesture-card {
+      width: 100%;
+      max-width: 640px;
+      background: #242424;
+      border: 1px solid #2e2e2e;
+      border-radius: 10px;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .gesture-icon {
+      color: #4ade80;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      width: 26px;
+      height: 26px;
+      overflow: visible;
+    }
+
+    .gesture-icon svg {
+      overflow: visible;
+    }
+
+    #gesture {
+      font-size: 16px;
+      font-weight: 600;
+      color: #4ade80;
+      min-height: 22px;
+      letter-spacing: -0.01em;
+    }
+
+    /* ── Canvas ── */
+    .canvas-wrap {
+      width: 100%;
+      max-width: 640px;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid #2a2a2a;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+    }
+
+    video { display: none; }
+  </style>
+</head>
+<body>
+
+  <div class="topbar">
+    <div class="brand">Hand Tracker</div>
+    <div class="status-chip">
+      <div class="dot" id="dot"></div>
+      <span id="status">Starting…</span>
+    </div>
+  </div>
+
+  <div class="gesture-card">
+    <div class="gesture-icon" id="gesture-icon"></div>
+    <div id="gesture">—</div>
+  </div>
+
+  <div class="canvas-wrap">
+    <canvas id="canvas"></canvas>
+  </div>
+
+  <video id="video" playsinline></video>
+  <script src="dist/tracker.js"></script>
+</body>
+</html>
