@@ -121,6 +121,7 @@ async function startTracker(roomId: string) {
 
   document.getElementById('btn-disconnect')!.onclick = () => {
     stopped = true;
+    wsManualClose = true;
     ws?.close();
     stream.getTracks().forEach(t => t.stop());
     video.srcObject = null;

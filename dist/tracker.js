@@ -4092,6 +4092,7 @@
     let stopped = false;
     document.getElementById("btn-disconnect").onclick = () => {
       stopped = true;
+      wsManualClose = true;
       ws2?.close();
       stream.getTracks().forEach((t2) => t2.stop());
       video.srcObject = null;
