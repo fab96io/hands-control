@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
+      font-size: 12px;
+      background: #1a1a1a;
+      color: #e0e0e0;
+      padding: 14px;
+      width: 100%;
+      overflow: hidden;
+    }
+
+    svg { display: inline-block; vertical-align: middle; }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .status-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #e05555;
+      flex-shrink: 0;
+      transition: background 0.3s;
+    }
+    .dot.connected { background: #4ade80; }
+
+    #status {
+      font-size: 11px;
+      color: #888;
+      letter-spacing: 0.02em;
+    }
+
+    button {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      background: #2a2a2a;
+      color: #ccc;
+      border: 1px solid #3a3a3a;
+      padding: 4px 10px;
+      cursor: pointer;
+      font-size: 11px;
+      border-radius: 6px;
+      transition: background 0.15s;
+    }
+    button:hover { background: #333; }
+
+    .gesture-wrap {
+      background: #242424;
+      border: 1px solid #2e2e2e;
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin-bottom: 10px;
+    }
+
+    .gesture-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    #gesture {
+      font-size: 15px;
+      font-weight: 600;
+      color: #4ade80;
+      min-height: 20px;
+      letter-spacing: -0.01em;
+    }
+
+    #coords {
+      font-size: 10px;
+      color: #555;
+      margin-top: 4px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .sliders {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .slider-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .slider-label {
+      font-size: 11px;
+      color: #666;
+      width: 30px;
+      flex-shrink: 0;
+    }
+
+    input[type=range] {
+      flex: 1;
+      height: 3px;
+      -webkit-appearance: none;
+      appearance: none;
+      background: transparent;
+      outline: none;
+      padding: 0;
+      margin: 0;
+    }
+    input[type=range]::-webkit-slider-runnable-track {
+      height: 3px;
+      background: #333;
+      border-radius: 2px;
+      border: none;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #4ade80;
+      cursor: pointer;
+      margin-top: -4.5px;
+    }
+
+    .slider-val {
+      font-size: 11px;
+      color: #888;
+      width: 18px;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .room-box {
+      background: #242424;
+      border: 1px solid #2e2e2e;
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin-bottom: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .room-label {
+      font-size: 10px;
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .room-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    #room-code {
+      flex: 1;
+      font-size: 20px;
+      font-weight: 700;
+      color: #fff;
+      font-family: monospace;
+      letter-spacing: 0.1em;
+    }
+
+    .room-actions {
+      display: flex;
+      gap: 6px;
+    }
+
+    .room-btn {
+      background: #2e2e2e;
+      color: #aaa;
+      border: 1px solid #3a3a3a;
+      padding: 5px 10px;
+      cursor: pointer;
+      font-size: 11px;
+      border-radius: 5px;
+      flex-shrink: 0;
+      transition: background 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .room-btn:hover { background: #383838; }
+    #btn-open { color: #4ade80; border-color: #2a4a30; background: #1a2e1a; }
+    #btn-open:hover { background: #1f3820; }
+
+    #log {
+      font-size: 10px;
+      color: #444;
+      min-height: 14px;
+      font-variant-numeric: tabular-nums;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="status-row">
+      <div class="dot" id="dot"></div>
+      <span id="status">Connecting…</span>
+    </div>
+    <button id="btn-toggle">
+      <!-- pause icon -->
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>
+      </svg>
+      Pause
+    </button>
+  </div>
+
+  <div class="room-box">
+    <div class="room-label">Your room code</div>
+    <div class="room-row">
+      <span id="room-code">—</span>
+      <div class="room-actions">
+        <div id="room-actions-disconnected" class="room-actions">
+          <button id="btn-copy" class="room-btn">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            Copy
+          </button>
+          <button id="btn-open" class="room-btn">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+            Open
+          </button>
+        </div>
+        <div id="room-actions-connected" style="display:none;" class="room-actions">
+          <button id="btn-disconnect" class="room-btn" style="color:#e05555;border-color:#3a2020;background:#2a1a1a;">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            Disconnect
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="connected-ui" style="display:none;">
+    <div class="gesture-wrap">
+      <div class="gesture-row">
+        <div id="gesture-icon" style="display:flex;align-items:center;justify-content:center;width:20px;height:20px;flex-shrink:0;overflow:visible;"></div>
+        <div id="gesture">—</div>
+      </div>
+      <div id="coords">pos: — | zoom: —</div>
+    </div>
+  </div>
+
+  <div id="sliders-ui" style="display:none;" class="sliders">
+    <div class="slider-row">
+      <!-- move icon -->
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;">
+        <polyline points="5 9 2 12 5 15"/><polyline points="9 5 12 2 15 5"/>
+        <polyline points="15 19 12 22 9 19"/><polyline points="19 9 22 12 19 15"/>
+        <line x1="2" y1="12" x2="22" y2="12"/><line x1="12" y1="2" x2="12" y2="22"/>
+      </svg>
+      <span class="slider-label">Pan</span>
+      <input type="range" id="pan-sens" min="1" max="20" value="5" />
+      <span class="slider-val" id="pan-val">5</span>
+    </div>
+    <div class="slider-row">
+      <!-- zoom-in icon -->
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;">
+        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        <line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/>
+      </svg>
+      <span class="slider-label">Zoom</span>
+      <input type="range" id="zoom-sens" min="1" max="10" value="3" />
+      <span class="slider-val" id="zoom-val">3</span>
+    </div>
+  </div>
+
+  <div id="log" style="display:none;"></div>
+
+  <script src="ui.js"></script>
+</body>
+</html>

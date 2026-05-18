@@ -1,0 +1,12 @@
+{
+  "name": "Hand Control",
+  "id": "hand-control-plugin-dev",
+  "api": "1.0.0",
+  "main": "dist/code.js",
+  "ui": "dist/ui.html",
+  "editorType": ["figma"],
+  "networkAccess": {
+    "allowedDomains": ["wss://hand-relay.fly.dev"],
+    "devAllowedDomains": ["ws://localhost:8080", "wss://hand-relay.fly.dev"]
+  }
+}
