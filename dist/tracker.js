@@ -4076,6 +4076,17 @@
     if (text.startsWith("no hands")) return "no hands";
     return "idle";
   }
+  function classifyGesture(results) {
+    if (results.landmarks.length === 0) return "no hands";
+    if (results.landmarks.length === 2) return "zoom";
+    const lm = results.landmarks[0];
+    if (dist(lm[4], lm[8]) < PINCH_THRESHOLD) return "pinch";
+    if (!isExtended(lm, 0) && !isExtended(lm, 1) && !isExtended(lm, 2) && !isExtended(lm, 3)) return "fist";
+    if (isExtended(lm, 0) && isExtended(lm, 1) && !isExtended(lm, 2) && !isExtended(lm, 3)) return "peace";
+    if (isExtended(lm, 0) && isExtended(lm, 1) && isExtended(lm, 2) && !isExtended(lm, 3)) return "pan";
+    if (isExtended(lm, 0) && isExtended(lm, 1) && isExtended(lm, 2) && isExtended(lm, 3)) return "open palm";
+    return "idle";
+  }
   function updateGesture(text) {
     const el = document.getElementById("gesture");
     if (el) el.textContent = text;
@@ -4157,10 +4168,11 @@
               smoothPos.y = POS_ALPHA * palmY + (1 - POS_ALPHA) * smoothPos.y;
             }
             position = { x: smoothPos.x, y: smoothPos.y };
-            fist = !pinch && !isExtended(primary.landmarks, 0) && !isExtended(primary.landmarks, 1) && !isExtended(primary.landmarks, 2) && !isExtended(primary.landmarks, 3);
-            peace = !pinch && isExtended(primary.landmarks, 0) && isExtended(primary.landmarks, 1) && !isExtended(primary.landmarks, 2) && !isExtended(primary.landmarks, 3);
-            isPanning = !pinch && isExtended(primary.landmarks, 0) && isExtended(primary.landmarks, 1) && isExtended(primary.landmarks, 2) && !isExtended(primary.landmarks, 3);
-            openPalm = !pinch && isExtended(primary.landmarks, 0) && isExtended(primary.landmarks, 1) && isExtended(primary.landmarks, 2) && isExtended(primary.landmarks, 3);
+            const classified = classifyGesture(results);
+            fist = classified === "fist";
+            peace = classified === "peace";
+            isPanning = classified === "pan";
+            openPalm = classified === "open palm";
             ctx.fillStyle = pinch ? "red" : "lime";
             for (const lm of primary.landmarks) {
               ctx.beginPath();
@@ -4191,14 +4203,117 @@
     }
     detect();
   }
+  var WIZARD_GESTURES = [
+    { key: "pinch", name: "Pinch", action: "Drag node" },
+    { key: "open palm", name: "Open Palm", action: "Select node" },
+    { key: "fist", name: "Fist", action: "Deselect all" },
+    { key: "peace", name: "Peace \u270C", action: "Undo" },
+    { key: "pan", name: "3 Fingers", action: "Pan viewport" },
+    { key: "zoom", name: "Two Hands", action: "Zoom + rotate" }
+  ];
+  function showRoomEntry() {
+    document.getElementById("wizard").style.display = "none";
+    document.getElementById("room-entry").style.display = "flex";
+  }
+  async function startGesturePractice() {
+    let currentIdx = 0;
+    let consecutiveFrames = 0;
+    let practiceStopped = false;
+    const video = document.getElementById("video");
+    const preview = document.getElementById("wizard-preview");
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 320, height: 240 } });
+    video.srcObject = stream;
+    await video.play();
+    preview.width = video.videoWidth;
+    preview.height = video.videoHeight;
+    const vision = await Zo.forVisionTasks(MEDIAPIPE_WASM);
+    const hl = await Pc.createFromOptions(vision, {
+      baseOptions: { modelAssetPath: HAND_MODEL, delegate: "GPU" },
+      numHands: 2,
+      runningMode: "VIDEO"
+    });
+    function updateWizardUI() {
+      const g2 = WIZARD_GESTURES[currentIdx];
+      document.getElementById("wizard-gesture-name").textContent = g2.name;
+      document.getElementById("wizard-gesture-action").textContent = "\u2192 " + g2.action;
+      document.getElementById("wizard-gesture-icon").innerHTML = GESTURE_ICONS[g2.key] ?? "";
+      document.getElementById("wizard-count").textContent = String(currentIdx);
+      document.getElementById("wizard-hold-bar").style.width = "0%";
+      document.getElementById("wizard-gesture-status").textContent = "";
+    }
+    updateWizardUI();
+    let lastVideoTime = -1;
+    function stopStream() {
+      stream.getTracks().forEach((t2) => t2.stop());
+      video.srcObject = null;
+    }
+    function practiceLoop() {
+      if (practiceStopped) return;
+      if (video.readyState >= 2 && video.currentTime !== lastVideoTime) {
+        lastVideoTime = video.currentTime;
+        const results = hl.detectForVideo(video, Date.now());
+        const pCtx = preview.getContext("2d");
+        pCtx.save();
+        pCtx.scale(-1, 1);
+        pCtx.drawImage(video, -preview.width, 0);
+        pCtx.restore();
+        const detected = classifyGesture(results);
+        const target = WIZARD_GESTURES[currentIdx].key;
+        if (detected === target) {
+          consecutiveFrames = Math.min(consecutiveFrames + 1, 15);
+        } else {
+          consecutiveFrames = 0;
+        }
+        document.getElementById("wizard-hold-bar").style.width = consecutiveFrames / 15 * 100 + "%";
+        if (consecutiveFrames >= 15) {
+          consecutiveFrames = 0;
+          currentIdx++;
+          document.getElementById("wizard-count").textContent = String(currentIdx);
+          if (currentIdx >= WIZARD_GESTURES.length) {
+            practiceStopped = true;
+            stopStream();
+            localStorage.setItem("hc-wizard-done", "1");
+            document.getElementById("wizard-connect").disabled = false;
+            document.getElementById("wizard-gesture-status").textContent = "\u2713 All done!";
+          } else {
+            document.getElementById("wizard-gesture-status").textContent = "\u2713 Got it!";
+            setTimeout(updateWizardUI, 600);
+          }
+        }
+      }
+      requestAnimationFrame(practiceLoop);
+    }
+    practiceLoop();
+    document.getElementById("wizard-skip").onclick = () => {
+      practiceStopped = true;
+      stopStream();
+      localStorage.setItem("hc-wizard-done", "1");
+      showRoomEntry();
+    };
+    document.getElementById("wizard-connect").onclick = () => showRoomEntry();
+  }
+  function initWizard() {
+    document.getElementById("wizard-connect").disabled = true;
+    document.getElementById("wizard-step-1").style.display = "flex";
+    document.getElementById("wizard-step-2").style.display = "none";
+    document.getElementById("wizard").style.display = "flex";
+    document.getElementById("wizard-start").onclick = () => {
+      document.getElementById("wizard-step-1").style.display = "none";
+      document.getElementById("wizard-step-2").style.display = "flex";
+      startGesturePractice().catch((err) => console.error("Wizard practice error:", err));
+    };
+  }
   var urlRoom = new URLSearchParams(window.location.search).get("room");
   if (urlRoom) {
     startTracker(urlRoom).catch((err) => {
       updateStatus(`Error: ${err.message}`, "red");
     });
   } else {
-    document.getElementById("room-entry").style.display = "flex";
-    document.getElementById("tracker-ui").style.display = "none";
+    if (localStorage.getItem("hc-wizard-done")) {
+      showRoomEntry();
+    } else {
+      initWizard();
+    }
     const form = document.getElementById("room-form");
     const input = document.getElementById("room-input");
     form.addEventListener("submit", (e2) => {
@@ -4209,5 +4324,10 @@
         updateStatus(`Error: ${err.message}`, "red");
       });
     });
+    document.getElementById("show-guide-again").onclick = () => {
+      localStorage.removeItem("hc-wizard-done");
+      document.getElementById("room-entry").style.display = "none";
+      initWizard();
+    };
   }
 })();
