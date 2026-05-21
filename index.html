@@ -186,6 +186,114 @@
       transition: background 0.2s;
     }
     #btn-disconnect:hover { background: #3a1a1a; }
+
+    /* ── Wizard ── */
+    #wizard {
+      width: 100%;
+      max-width: 640px;
+      flex-direction: column;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .wizard-step {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      text-align: center;
+    }
+
+    .wizard-welcome-title {
+      font-size: 26px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .wizard-steps-list {
+      font-size: 13px;
+      color: #888;
+      line-height: 2;
+    }
+
+    .wizard-gesture-target {
+      width: 100%;
+      max-width: 400px;
+      background: #242424;
+      border: 1px solid #2e2e2e;
+      border-radius: 10px;
+      padding: 24px;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      display: flex;
+    }
+
+    .wizard-hold-track {
+      width: 100%;
+      max-width: 400px;
+      height: 4px;
+      background: #2e2e2e;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    #wizard-hold-bar {
+      height: 100%;
+      background: #4ade80;
+      border-radius: 4px;
+      width: 0%;
+      transition: width 0.05s linear;
+    }
+
+    .wizard-progress {
+      font-size: 12px;
+      color: #888;
+    }
+
+    .wizard-actions {
+      display: flex;
+      gap: 12px;
+    }
+
+    .btn-wizard-primary {
+      background: #4ade80;
+      color: #111;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 20px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-wizard-primary:hover:not(:disabled) { background: #22c55e; }
+    .btn-wizard-primary:disabled { opacity: 0.4; cursor: default; }
+
+    .btn-wizard-skip {
+      background: transparent;
+      color: #888;
+      border: 1px solid #3a3a3a;
+      border-radius: 8px;
+      padding: 10px 20px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: border-color 0.2s, color 0.2s;
+    }
+    .btn-wizard-skip:hover { border-color: #888; color: #e0e0e0; }
+
+    .show-guide-link {
+      font-size: 11px;
+      color: #555;
+      text-decoration: underline;
+      cursor: pointer;
+      background: none;
+      border: none;
+      padding: 0;
+      margin-top: -8px;
+    }
+    .show-guide-link:hover { color: #888; }
   </style>
 </head>
 <body>
@@ -198,6 +306,44 @@
         <span id="status">—</span>
       </div>
       <button id="btn-disconnect">Disconnect</button>
+    </div>
+  </div>
+
+  <!-- Onboarding wizard -->
+  <div id="wizard" style="display:none;">
+
+    <!-- Step 1: Welcome -->
+    <div id="wizard-step-1" class="wizard-step" style="display:none; padding: 40px 20px;">
+      <div class="wizard-welcome-title">Control Figma with your hands</div>
+      <div class="wizard-steps-list">
+        <div>① Install the <strong style="color:#e0e0e0;">Hand Control</strong> plugin in Figma</div>
+        <div>② Open the plugin to get a room code</div>
+        <div>③ Enter the code here — then gesture away</div>
+      </div>
+      <button id="wizard-start" class="btn-wizard-primary">Learn gestures →</button>
+    </div>
+
+    <!-- Step 2: Gesture practice -->
+    <div id="wizard-step-2" class="wizard-step" style="display:none;">
+      <canvas id="wizard-preview" style="border-radius:8px; border:1px solid #2a2a2a; max-width:100%;"></canvas>
+
+      <div class="wizard-gesture-target">
+        <div class="gesture-icon" id="wizard-gesture-icon" style="width:36px;height:36px;"></div>
+        <div id="wizard-gesture-name" style="font-size:18px;font-weight:700;color:#fff;"></div>
+        <div id="wizard-gesture-action" style="font-size:12px;color:#888;"></div>
+        <div id="wizard-gesture-status" style="font-size:12px;color:#4ade80;min-height:18px;"></div>
+      </div>
+
+      <div class="wizard-hold-track">
+        <div id="wizard-hold-bar"></div>
+      </div>
+
+      <div class="wizard-progress"><span id="wizard-count">0</span> / 6 learned</div>
+
+      <div class="wizard-actions">
+        <button id="wizard-skip" class="btn-wizard-skip">Skip all</button>
+        <button id="wizard-connect" class="btn-wizard-primary" disabled>Connect →</button>
+      </div>
     </div>
   </div>
 
@@ -214,6 +360,7 @@
       <input id="room-input" type="text" placeholder="e.g. A3K-9XB" maxlength="7" autocomplete="off" />
       <button id="room-submit" type="submit">Connect</button>
     </form>
+    <button class="show-guide-link" id="show-guide-again">Show guide again</button>
   </div>
 
   <!-- Tracker UI (shown after connect) -->
