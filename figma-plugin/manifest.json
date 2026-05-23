@@ -1,5 +1,5 @@
 {
-  "name": "Hand Control",
+  "name": "Palmy - Figma hands control",
   "id": "hand-control-plugin-dev",
   "api": "1.0.0",
   "main": "dist/code.js",

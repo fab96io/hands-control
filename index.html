@@ -2,13 +2,13 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Hand Tracker</title>
+  <title>Palmy — Figma hands control</title>
   <script src="https://unpkg.com/lucide@latest"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      background: #1a1a1a;
+      background: #162530;
       color: #e0e0e0;
       font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
       font-size: 13px;
@@ -38,15 +38,15 @@
       color: #fff;
     }
 
-    .brand i { color: #4ade80; }
+    .brand i { color: #B0FE76; }
 
     /* ── Status chip ── */
     .status-chip {
       display: flex;
       align-items: center;
       gap: 6px;
-      background: #242424;
-      border: 1px solid #2e2e2e;
+      background: #1c2f3a;
+      border: 1px solid #243d4e;
       border-radius: 20px;
       padding: 5px 12px;
       font-size: 12px;
@@ -60,7 +60,7 @@
       background: #e05555;
       transition: background 0.3s;
     }
-    .dot.connected { background: #4ade80; }
+    .dot.connected { background: #B0FE76; }
 
     /* ── Room entry ── */
     #room-entry {
@@ -95,8 +95,8 @@
 
     #room-input {
       flex: 1;
-      background: #242424;
-      border: 1px solid #3a3a3a;
+      background: #1c2f3a;
+      border: 1px solid #2d4a5c;
       border-radius: 8px;
       padding: 10px 14px;
       color: #fff;
@@ -108,11 +108,11 @@
       transition: border-color 0.2s;
     }
 
-    #room-input:focus { border-color: #4ade80; }
+    #room-input:focus { border-color: #B0FE76; }
     #room-input::placeholder { color: #555; text-transform: none; letter-spacing: 0; }
 
     #room-submit {
-      background: #4ade80;
+      background: #B0FE76;
       color: #111;
       border: none;
       border-radius: 8px;
@@ -122,14 +122,14 @@
       cursor: pointer;
       transition: background 0.2s;
     }
-    #room-submit:hover { background: #22c55e; }
+    #room-submit:hover { background: #8ed44e; }
 
     /* ── Gesture badge ── */
     .gesture-card {
       width: 100%;
       max-width: 640px;
-      background: #242424;
-      border: 1px solid #2e2e2e;
+      background: #1c2f3a;
+      border: 1px solid #243d4e;
       border-radius: 10px;
       padding: 12px 16px;
       display: flex;
@@ -138,7 +138,7 @@
     }
 
     .gesture-icon {
-      color: #4ade80;
+      color: #B0FE76;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -153,7 +153,7 @@
     #gesture {
       font-size: 16px;
       font-weight: 600;
-      color: #4ade80;
+      color: #B0FE76;
       min-height: 22px;
       letter-spacing: -0.01em;
     }
@@ -164,7 +164,7 @@
       max-width: 640px;
       border-radius: 10px;
       overflow: hidden;
-      border: 1px solid #2a2a2a;
+      border: 1px solid #0f1e28;
     }
 
     canvas {
@@ -220,8 +220,8 @@
     .wizard-gesture-target {
       width: 100%;
       max-width: 400px;
-      background: #242424;
-      border: 1px solid #2e2e2e;
+      background: #1c2f3a;
+      border: 1px solid #243d4e;
       border-radius: 10px;
       padding: 24px;
       flex-direction: column;
@@ -234,14 +234,14 @@
       width: 100%;
       max-width: 400px;
       height: 4px;
-      background: #2e2e2e;
+      background: #243d4e;
       border-radius: 4px;
       overflow: hidden;
     }
 
     #wizard-hold-bar {
       height: 100%;
-      background: #4ade80;
+      background: #B0FE76;
       border-radius: 4px;
       width: 0%;
       transition: width 0.05s linear;
@@ -258,7 +258,7 @@
     }
 
     .btn-wizard-primary {
-      background: #4ade80;
+      background: #B0FE76;
       color: #111;
       border: none;
       border-radius: 8px;
@@ -268,13 +268,13 @@
       cursor: pointer;
       transition: background 0.2s;
     }
-    .btn-wizard-primary:hover:not(:disabled) { background: #22c55e; }
+    .btn-wizard-primary:hover:not(:disabled) { background: #8ed44e; }
     .btn-wizard-primary:disabled { opacity: 0.4; cursor: default; }
 
     .btn-wizard-skip {
       background: transparent;
       color: #888;
-      border: 1px solid #3a3a3a;
+      border: 1px solid #2d4a5c;
       border-radius: 8px;
       padding: 10px 20px;
       font-size: 13px;
@@ -299,7 +299,9 @@
 <body>
 
   <div class="topbar">
-    <div class="brand">Hand Tracker</div>
+    <div class="brand">
+      <img src="src/Palmy_horizontal_logo.svg" alt="Palmy" style="height:60px;width:auto;">
+    </div>
     <div style="display:flex;align-items:center;gap:8px;">
       <div class="status-chip">
         <div class="dot" id="dot"></div>
@@ -325,13 +327,13 @@
 
     <!-- Step 2: Gesture practice -->
     <div id="wizard-step-2" class="wizard-step" style="display:none;">
-      <canvas id="wizard-preview" style="border-radius:8px; border:1px solid #2a2a2a; max-width:100%;"></canvas>
+      <canvas id="wizard-preview" style="border-radius:8px; border:1px solid #0f1e28; max-width:100%;"></canvas>
 
       <div class="wizard-gesture-target">
         <div class="gesture-icon" id="wizard-gesture-icon" style="width:36px;height:36px;"></div>
         <div id="wizard-gesture-name" style="font-size:18px;font-weight:700;color:#fff;"></div>
         <div id="wizard-gesture-action" style="font-size:12px;color:#888;"></div>
-        <div id="wizard-gesture-status" style="font-size:12px;color:#4ade80;min-height:18px;"></div>
+        <div id="wizard-gesture-status" style="font-size:12px;color:#B0FE76;min-height:18px;"></div>
       </div>
 
       <div class="wizard-hold-track">
