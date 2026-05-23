@@ -27,7 +27,7 @@ const CURSOR_SVG = `<svg width="100" height="100" viewBox="0 0 100 100" fill="no
 
 let draggingNodes: SceneNode[] = [];
 
-figma.showUI(__html__, { width: 320, height: 300, title: 'Hand Control' });
+figma.showUI(__html__, { width: 320, height: 380, title: 'Hand Control' });
 
 // ── Cursor ────────────────────────────────────────────────────────────────────
 function getOrCreateCursor(): FrameNode {
