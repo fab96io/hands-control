@@ -3,6 +3,6 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 COPY . .
-RUN npx tsc --outDir dist
+RUN node node_modules/typescript/lib/tsc.js --outDir dist
 EXPOSE 8080
 CMD ["node", "dist/server.js"]

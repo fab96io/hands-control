@@ -2,7 +2,9 @@ import { WebSocketServer, WebSocket } from 'ws';
 import { IncomingMessage } from 'http';
 
 const PORT = Number(process.env.PORT ?? 8080);
-const wss = new WebSocketServer({ port: PORT });
+const PING_INTERVAL_MS = 25_000;
+
+const wss = new WebSocketServer({ port: PORT, host: '0.0.0.0' });
 
 const rooms = new Map<string, Set<WebSocket>>();
 
@@ -20,6 +22,15 @@ wss.on('connection', (ws: WebSocket, req: IncomingMessage) => {
   rooms.get(room)!.add(ws);
   console.log(`[+] room=${room} total=${rooms.get(room)!.size}`);
 
+  // Keepalive: ping every 25s so mobile networks don't kill idle connections
+  let alive = true;
+  const pingTimer = setInterval(() => {
+    if (!alive) { ws.terminate(); return; }
+    alive = false;
+    ws.ping();
+  }, PING_INTERVAL_MS);
+  ws.on('pong', () => { alive = true; });
+
   ws.on('message', (data) => {
     for (const client of rooms.get(room)!) {
       if (client !== ws && client.readyState === WebSocket.OPEN) {
@@ -29,6 +40,7 @@ wss.on('connection', (ws: WebSocket, req: IncomingMessage) => {
   });
 
   ws.on('close', () => {
+    clearInterval(pingTimer);
     rooms.get(room)?.delete(ws);
     const remaining = rooms.get(room);
     if (remaining) {
