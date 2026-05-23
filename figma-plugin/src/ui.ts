@@ -15,6 +15,7 @@ type HandMessage = {
     fist: boolean;
     peace: boolean;
     openPalm: boolean;
+    point: boolean;
   };
 };
 
@@ -44,7 +45,10 @@ let prevDragPos: { x: number; y: number } | null = null;
 let prevFist = false;
 let prevPeace = false;
 let prevOpenPalm = false;
+let prevPoint = false;
 const MAX_DELTA = 0.05;
+const PINCH_RELEASE_FRAMES = 6;
+let pinchOffFrames = 0;
 
 const DWELL_MS = 500;
 const DWELL_STILL_THRESHOLD = 0.018;
@@ -81,8 +85,10 @@ const roomActionsConn = document.getElementById('room-actions-connected')!;
 const roomCodeEl = document.getElementById('room-code')!;
 const panSensInput = document.getElementById('pan-sens') as HTMLInputElement;
 const zoomSensInput = document.getElementById('zoom-sens') as HTMLInputElement;
+const trackScaleInput = document.getElementById('track-scale') as HTMLInputElement;
 const panValEl = document.getElementById('pan-val')!;
 const zoomValEl = document.getElementById('zoom-val')!;
+const trackValEl = document.getElementById('track-val')!;
 
 roomCodeEl.textContent = roomId;
 
@@ -118,6 +124,9 @@ btnDisconnect.addEventListener('click', () => {
 });
 
 panSensInput.addEventListener('input', () => { panValEl.textContent = panSensInput.value; });
+trackScaleInput.addEventListener('input', () => {
+  trackValEl.textContent = (parseInt(trackScaleInput.value) / 10).toFixed(1);
+});
 zoomSensInput.addEventListener('input', () => { zoomValEl.textContent = zoomSensInput.value; });
 
 btnToggle.addEventListener('click', () => {
@@ -147,6 +156,7 @@ function log(msg: string) {
 
 const GESTURE_ICONS: Record<string, string> = {
   'no hands':  `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="overflow:visible"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`,
+  'point':     `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="overflow:visible"><path d="m4 4 7.07 17 2.51-7.39L21 11.07z"/></svg>`,
   'pinch':     `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="overflow:visible"><path d="M18 11V6a2 2 0 0 0-4 0v5"/><path d="M14 10V4a2 2 0 0 0-4 0v6"/><path d="M10 10.5V6a2 2 0 0 0-4 0v8l-2-2.5a1.5 1.5 0 0 0-2.5 1.5l3 5A5 5 0 0 0 9 21h6a5 5 0 0 0 5-5v-5a2 2 0 0 0-4 0v1"/></svg>`,
   'fist':      `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="overflow:visible"><rect x="3" y="8" width="18" height="13" rx="2"/><path d="M7 8V6a2 2 0 0 1 4 0v2"/><path d="M11 8V5a2 2 0 0 1 4 0v3"/><path d="M15 8V7a2 2 0 0 1 4 0v1"/></svg>`,
   'peace':     `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="overflow:visible"><circle cx="12" cy="12" r="10"/><line x1="12" y1="2" x2="12" y2="22"/><line x1="12" y1="12" x2="4.93" y2="19.07"/><line x1="12" y1="12" x2="19.07" y2="19.07"/></svg>`,
@@ -160,6 +170,7 @@ function gestureKey(text: string): string {
   if (text.startsWith('pinch')) return 'pinch';
   if (text.startsWith('fist')) return 'fist';
   if (text.startsWith('peace')) return 'peace';
+  if (text.startsWith('point')) return 'point';
   if (text.startsWith('open palm')) return 'open palm';
   if (text.startsWith('pan')) return 'pan';
   if (text.startsWith('two hands')) return 'two hands';
@@ -225,9 +236,16 @@ function processMessage(msg: HandMessage) {
   const { gestures } = msg;
   const panSens = parseInt(panSensInput.value);
   const zoomSens = parseInt(zoomSensInput.value) / 10;
+  const trackScale = parseInt(trackScaleInput.value) / 10;
+
+  const rawPos = gestures.position;
+  const pos = {
+    x: Math.max(0, Math.min(1, 0.5 + (rawPos.x - 0.5) * trackScale)),
+    y: Math.max(0, Math.min(1, 0.5 + (rawPos.y - 0.5) * trackScale)),
+  };
 
   // Update UI
-  coordsEl.textContent = `pos: (${gestures.position.x.toFixed(2)}, ${gestures.position.y.toFixed(2)}) | zoom: ${gestures.zoom?.toFixed(2) ?? '—'}`;
+  coordsEl.textContent = `pos: (${pos.x.toFixed(2)}, ${pos.y.toFixed(2)}) | zoom: ${gestures.zoom?.toFixed(2) ?? '—'}`;
 
   if (msg.hands.length === 0) {
     setGesture('no hands');
@@ -241,6 +259,8 @@ function processMessage(msg: HandMessage) {
     prevFist = false;
     prevPeace = false;
     prevOpenPalm = false;
+    prevPoint = false;
+    pinchOffFrames = 0;
     dwellPos = null;
     dwellStart = null;
     dwellFired = false;
@@ -248,48 +268,58 @@ function processMessage(msg: HandMessage) {
   }
 
   // ── Cursor always follows primary hand ─────────────────────────────────────
-  send({ type: 'MOVE_CURSOR', x: gestures.position.x, y: gestures.position.y });
+  send({ type: 'MOVE_CURSOR', x: pos.x, y: pos.y });
 
   // ── Pinch → drag only ─────────────────────────────────────────────────────
-  if (gestures.pinch && !prevPinch) {
-    dragState = 'dragging';
-    prevDragPos = { ...gestures.position };
-  }
-
-  if (gestures.pinch && dragState === 'dragging') {
-    setGesture('pinch — drag');
-    const rawDx = gestures.position.x - prevDragPos!.x;
-    const rawDy = gestures.position.y - prevDragPos!.y;
-    const dx = Math.max(-MAX_DELTA, Math.min(MAX_DELTA, rawDx));
-    const dy = Math.max(-MAX_DELTA, Math.min(MAX_DELTA, rawDy));
-    if (Math.abs(dx) > 0.003 || Math.abs(dy) > 0.003) {
-      send({ type: 'MOVE_NODE', dx, dy });
+  if (gestures.pinch) {
+    pinchOffFrames = 0;
+    if (!prevPinch) {
+      dragState = 'dragging';
+      prevDragPos = { ...pos };
     }
-    prevDragPos = { ...gestures.position };
+  } else {
+    pinchOffFrames++;
   }
 
-  if (!gestures.pinch && prevPinch) {
-    send({ type: 'MOVE_NODE_END' });
-    dragState = 'idle';
-    prevDragPos = null;
+  if (dragState === 'dragging') {
+    if (gestures.pinch) {
+      setGesture('pinch — drag');
+      const rawDx = pos.x - prevDragPos!.x;
+      const rawDy = pos.y - prevDragPos!.y;
+      const dx = Math.max(-MAX_DELTA, Math.min(MAX_DELTA, rawDx));
+      const dy = Math.max(-MAX_DELTA, Math.min(MAX_DELTA, rawDy));
+      if (Math.abs(dx) > 0.003 || Math.abs(dy) > 0.003) {
+        send({ type: 'MOVE_NODE', dx, dy });
+      }
+      prevDragPos = { ...pos };
+    } else if (pinchOffFrames >= PINCH_RELEASE_FRAMES) {
+      send({ type: 'MOVE_NODE_END' });
+      dragState = 'idle';
+      prevDragPos = null;
+    }
   }
 
-  // ── Fist → deselect all ────────────────────────────────────────────────────
-  if (gestures.fist && !prevFist) {
+  // ── Fist → deselect all (blocked during active drag) ──────────────────────
+  if (gestures.fist && !prevFist && dragState !== 'dragging') {
     setGesture('fist — deselect');
     send({ type: 'DESELECT_ALL' });
   }
 
   // ── Peace → undo ───────────────────────────────────────────────────────────
-  if (gestures.peace && !prevPeace) {
+  if (gestures.peace && !prevPeace && dragState !== 'dragging') {
     setGesture('peace — undo');
     send({ type: 'UNDO' });
   }
 
-  // ── Open palm → select under cursor ───────────────────────────────────────
+  // ── Open palm → cursor movement only ──────────────────────────────────────
   if (gestures.openPalm && !prevOpenPalm) {
-    setGesture('open palm — select');
-    send({ type: 'SELECT_AT', x: gestures.position.x, y: gestures.position.y });
+    setGesture('open palm');
+  }
+
+  // ── Point (index only) → select under cursor ──────────────────────────────
+  if (gestures.point && !prevPoint) {
+    setGesture('point — select');
+    send({ type: 'SELECT_AT', x: pos.x, y: pos.y });
   }
 
   // ── Two-hand zoom + rotate ────────────────────────────────────────────────
@@ -328,8 +358,8 @@ function processMessage(msg: HandMessage) {
     if (gestures.isPanning && !gestures.pinch) {
       setGesture('pan');
       if (prevPosition !== null) {
-        const rawDx = gestures.position.x - prevPosition.x;
-        const rawDy = gestures.position.y - prevPosition.y;
+        const rawDx = pos.x - prevPosition.x;
+        const rawDy = pos.y - prevPosition.y;
         const clampedDx = Math.max(-MAX_DELTA, Math.min(MAX_DELTA, rawDx));
         const clampedDy = Math.max(-MAX_DELTA, Math.min(MAX_DELTA, rawDy));
         const dx = clampedDx * panSens;
@@ -338,7 +368,7 @@ function processMessage(msg: HandMessage) {
           send({ type: 'PAN', dx, dy });
         }
       }
-      prevPosition = { ...gestures.position };
+      prevPosition = { ...pos };
     } else if (!gestures.isPanning) {
       prevPosition = null;
     }
@@ -348,6 +378,7 @@ function processMessage(msg: HandMessage) {
   prevFist = gestures.fist;
   prevPeace = gestures.peace;
   prevOpenPalm = gestures.openPalm;
+  prevPoint = gestures.point;
 }
 
 connect();
