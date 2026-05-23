@@ -80,8 +80,8 @@ const btnToggle = document.getElementById('btn-toggle') as HTMLButtonElement;
 const btnCopy = document.getElementById('btn-copy') as HTMLButtonElement;
 const btnOpen = document.getElementById('btn-open') as HTMLButtonElement;
 const btnDisconnect = document.getElementById('btn-disconnect') as HTMLButtonElement;
-const roomActionsDisc = document.getElementById('room-actions-disconnected')!;
-const roomActionsConn = document.getElementById('room-actions-connected')!;
+const roomActionsDisc = document.getElementById('room-disconnected')!;
+const headerConnected = document.getElementById('header-connected')!;
 const roomCodeEl = document.getElementById('room-code')!;
 const panSensInput = document.getElementById('pan-sens') as HTMLInputElement;
 const zoomSensInput = document.getElementById('zoom-sens') as HTMLInputElement;
@@ -129,9 +129,12 @@ trackScaleInput.addEventListener('input', () => {
 });
 zoomSensInput.addEventListener('input', () => { zoomValEl.textContent = zoomSensInput.value; });
 
+const ICON_PAUSE = `<svg width="18" height="18" viewBox="0 0 256 256" fill="currentColor"><path d="M200,32H160a16,16,0,0,0-16,16V208a16,16,0,0,0,16,16h40a16,16,0,0,0,16-16V48A16,16,0,0,0,200,32Zm0,176H160V48h40ZM96,32H56A16,16,0,0,0,40,48V208a16,16,0,0,0,16,16H96a16,16,0,0,0,16-16V48A16,16,0,0,0,96,32Zm0,176H56V48H96Z"/></svg>`;
+const ICON_PLAY  = `<svg width="18" height="18" viewBox="0 0 256 256" fill="currentColor"><path d="M232.4,114.49,88.32,26.35a16,16,0,0,0-16.2-.3A15.86,15.86,0,0,0,64,39.87V216.13A15.86,15.86,0,0,0,72.12,230a16,16,0,0,0,16.2-.3L232.4,141.51a15.91,15.91,0,0,0,0-27ZM80,208.94V47.06L224,128Z"/></svg>`;
+
 btnToggle.addEventListener('click', () => {
   paused = !paused;
-  btnToggle.textContent = paused ? 'Resume' : 'Pause';
+  btnToggle.innerHTML = paused ? ICON_PLAY : ICON_PAUSE;
   setGesture(paused ? 'PAUSED' : '—');
 });
 
@@ -146,8 +149,8 @@ function setTracking(active: boolean) {
   document.getElementById('connected-ui')!.style.display = d;
   document.getElementById('sliders-ui')!.style.display = active ? 'flex' : 'none';
   document.getElementById('log')!.style.display = d;
+  headerConnected.style.display = active ? 'flex' : 'none';
   roomActionsDisc.style.display = active ? 'none' : 'flex';
-  roomActionsConn.style.display = active ? 'flex' : 'none';
 }
 
 function log(msg: string) {
