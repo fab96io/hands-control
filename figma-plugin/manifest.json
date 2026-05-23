@@ -6,7 +6,7 @@
   "ui": "dist/ui.html",
   "editorType": ["figma"],
   "networkAccess": {
-    "allowedDomains": ["wss://hand-relay.fly.dev"],
-    "devAllowedDomains": ["ws://localhost:8080", "wss://hand-relay.fly.dev"]
+    "allowedDomains": ["wss://hand-relay.fly.dev", "https://fonts.googleapis.com", "https://fonts.gstatic.com"],
+    "devAllowedDomains": ["ws://localhost:8080", "wss://hand-relay.fly.dev", "https://fonts.googleapis.com", "https://fonts.gstatic.com"]
   }
 }
