@@ -4058,6 +4058,7 @@
   }
   var GESTURE_ICONS = {
     "no hands": `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`,
+    "point": `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m4 4 7.07 17 2.51-7.39L21 11.07z"/></svg>`,
     "pinch": `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 11V6a2 2 0 0 0-4 0v5"/><path d="M14 10V4a2 2 0 0 0-4 0v6"/><path d="M10 10.5V6a2 2 0 0 0-4 0v8l-2-2.5a1.5 1.5 0 0 0-2.5 1.5l3 5A5 5 0 0 0 9 21h6a5 5 0 0 0 5-5v-5a2 2 0 0 0-4 0v1"/></svg>`,
     "fist": `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="13" rx="2"/><path d="M7 8V6a2 2 0 0 1 4 0v2"/><path d="M11 8V5a2 2 0 0 1 4 0v3"/><path d="M15 8V7a2 2 0 0 1 4 0v1"/></svg>`,
     "peace": `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="2" x2="12" y2="22"/><line x1="12" y1="12" x2="4.93" y2="19.07"/><line x1="12" y1="12" x2="19.07" y2="19.07"/></svg>`,
@@ -4070,6 +4071,7 @@
     if (text.startsWith("pinch")) return "pinch";
     if (text.startsWith("fist")) return "fist";
     if (text.startsWith("peace")) return "peace";
+    if (text.startsWith("point")) return "point";
     if (text.startsWith("open palm")) return "open palm";
     if (text.startsWith("pan")) return "pan";
     if (text.startsWith("zoom") || text.startsWith("two")) return "zoom";
@@ -4080,8 +4082,9 @@
     if (results.landmarks.length === 0) return "no hands";
     if (results.landmarks.length === 2) return "zoom";
     const lm = results.landmarks[0];
-    if (dist(lm[4], lm[8]) < PINCH_THRESHOLD) return "pinch";
     if (!isExtended(lm, 0) && !isExtended(lm, 1) && !isExtended(lm, 2) && !isExtended(lm, 3)) return "fist";
+    if (dist(lm[4], lm[8]) < PINCH_THRESHOLD) return "pinch";
+    if (isExtended(lm, 0) && !isExtended(lm, 1) && !isExtended(lm, 2) && !isExtended(lm, 3)) return "point";
     if (isExtended(lm, 0) && isExtended(lm, 1) && !isExtended(lm, 2) && !isExtended(lm, 3)) return "peace";
     if (isExtended(lm, 0) && isExtended(lm, 1) && isExtended(lm, 2) && !isExtended(lm, 3)) return "pan";
     if (isExtended(lm, 0) && isExtended(lm, 1) && isExtended(lm, 2) && isExtended(lm, 3)) return "open palm";
@@ -4153,6 +4156,7 @@
           let fist = false;
           let peace = false;
           let openPalm = false;
+          let point = false;
           if (primary) {
             const thumbTip = primary.landmarks[4];
             const indexTip = primary.landmarks[8];
@@ -4173,6 +4177,7 @@
             peace = classified === "peace";
             isPanning = classified === "pan";
             openPalm = classified === "open palm";
+            point = classified === "point";
             ctx.fillStyle = pinch ? "red" : "lime";
             for (const lm of primary.landmarks) {
               ctx.beginPath();
@@ -4191,11 +4196,11 @@
             type: "hand_update",
             timestamp: now,
             hands,
-            gestures: { pinch, position, zoom, rotation, isPanning, fist, peace, openPalm }
+            gestures: { pinch, position, zoom, rotation, isPanning, fist, peace, openPalm, point }
           };
           ws2.send(JSON.stringify(msg));
           updateGesture(
-            hands.length === 0 ? "no hands" : pinch ? "pinch" : fist ? "fist" : peace ? "peace" : openPalm ? "open palm \u2014 select" : zoom !== null ? `zoom (dist: ${zoom.toFixed(2)})` : isPanning ? "pan (3 fingers)" : "idle"
+            hands.length === 0 ? "no hands" : pinch ? "pinch" : fist ? "fist" : peace ? "peace" : point ? "point \u2014 select" : openPalm ? "open palm" : zoom !== null ? `zoom (dist: ${zoom.toFixed(2)})` : isPanning ? "pan (3 fingers)" : "idle"
           );
         }
       }
@@ -4205,7 +4210,7 @@
   }
   var WIZARD_GESTURES = [
     { key: "pinch", name: "Pinch", action: "Drag node" },
-    { key: "open palm", name: "Open Palm", action: "Select node" },
+    { key: "point", name: "Point", action: "Select node" },
     { key: "fist", name: "Fist", action: "Deselect all" },
     { key: "peace", name: "Peace \u270C", action: "Undo" },
     { key: "pan", name: "3 Fingers", action: "Pan viewport" },
